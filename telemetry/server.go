@@ -35,7 +35,7 @@ type Server struct {
 	metrics          map[types.TelemetryType]common.MetricProcessor
 }
 
-func NewServer(db *sql.DB, logger *zap.Logger, metricsRetention time.Duration) *Server {
+func NewServer(db *sql.DB, logger *zap.Logger, metricsRetention time.Duration, promHandler func(w http.ResponseWriter, r *http.Request)) *Server {
 	ctx := context.Background()
 	server := &Server{
 		Router:           mux.NewRouter().StrictSlash(true),
@@ -53,6 +53,8 @@ func NewServer(db *sql.DB, logger *zap.Logger, metricsRetention time.Duration) *
 
 	server.Router.HandleFunc("/waku-metrics", server.createWakuTelemetry).Methods("POST")
 	server.Router.HandleFunc("/health", handleHealthCheck).Methods("GET")
+	server.Router.HandleFunc("/metrics", promHandler).Methods("GET")
+
 	server.Router.Use(server.rateLimit)
 
 	return server
@@ -115,6 +117,7 @@ func (s *Server) createTelemetryData(w http.ResponseWriter, r *http.Request) {
 
 		err := metric.Process(s.DB, errorDetails, &data)
 		if err != nil {
+			s.logger.Error("Failed to process metric", zap.Error(err))
 			continue
 		}
 	}

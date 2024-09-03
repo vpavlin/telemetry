@@ -6,9 +6,32 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/status-im/telemetry/lib/common"
 	"github.com/status-im/telemetry/pkg/types"
 )
+
+var networkBytes = prometheus.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "waku_network_bytes",
+		Help: "total traffic per protocol, peerId and direction",
+	},
+	[]string{"peerId", "type", "direction"},
+)
+
+var networkRate = prometheus.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "waku_network_rate",
+		Help: "rate per protocol, peerId and direction",
+	},
+	[]string{"peerId", "type", "direction"},
+)
+
+func init() {
+	prometheus.MustRegister(networkBytes)
+	prometheus.MustRegister(networkRate)
+
+}
 
 type ProtocolStats struct {
 	types.ProtocolStats
@@ -24,6 +47,9 @@ func (r *ProtocolStats) insertRate(db *sql.DB, protocolName string, metric types
 		return err
 	}
 
+	networkRate.With(prometheus.Labels{"peerId": r.PeerID, "type": protocolName, "direction": "out"}).Set(float64(metric.RateOut))
+	networkRate.With(prometheus.Labels{"peerId": r.PeerID, "type": protocolName, "direction": "in"}).Set(float64(metric.RateIn))
+
 	stmt, err = db.Prepare("INSERT INTO protocolStatsTotals (peerID, protocolName, totalIn, totalOut, createdAt) VALUES ($1, $2, $3, $4, $5) ON CONFLICT ON CONSTRAINT protocolStatsTotals_unique DO UPDATE SET totalIn = $3, totalOut = $4;")
 	if err != nil {
 		return err
@@ -33,6 +59,9 @@ func (r *ProtocolStats) insertRate(db *sql.DB, protocolName string, metric types
 	if err != nil {
 		return err
 	}
+
+	networkBytes.With(prometheus.Labels{"peerId": r.PeerID, "type": protocolName, "direction": "out"}).Set(float64(metric.TotalOut))
+	networkBytes.With(prometheus.Labels{"peerId": r.PeerID, "type": protocolName, "direction": "in"}).Set(float64(metric.TotalIn))
 
 	return nil
 }

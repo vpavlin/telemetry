@@ -7,6 +7,7 @@ import (
 
 	"github.com/status-im/telemetry/lib/database"
 	"github.com/status-im/telemetry/lib/metrics"
+	teleprom "github.com/status-im/telemetry/lib/metrics/prometheus"
 	"github.com/status-im/telemetry/pkg/types"
 	"github.com/status-im/telemetry/telemetry"
 	"go.uber.org/zap"
@@ -46,7 +47,9 @@ func main() {
 	c.Start()
 	defer c.Stop()
 
-	server := telemetry.NewServer(db, logger, *retention)
+	promMetricProcessor := &teleprom.PrometheusMetric{}
+
+	server := telemetry.NewServer(db, logger, *retention, promMetricProcessor.ServeMetrics)
 
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins: []string{"https://lab.waku.org"},
@@ -63,6 +66,7 @@ func main() {
 	server.RegisterMetric(types.ReceivedEnvelopeMetric, &metrics.ReceivedEnvelope{})
 	server.RegisterMetric(types.ReceivedMessagesMetric, &metrics.ReceivedMessage{})
 	server.RegisterMetric(types.SentEnvelopeMetric, &metrics.SentEnvelope{})
+	server.RegisterMetric(types.PrometheusMetric, promMetricProcessor)
 
 	server.Start(*port)
 }

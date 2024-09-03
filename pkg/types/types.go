@@ -1,6 +1,10 @@
 package types
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	prom_model "github.com/prometheus/client_model/go"
+)
 
 type TelemetryType string
 
@@ -13,6 +17,7 @@ const (
 	ErrorSendingEnvelopeMetric TelemetryType = "ErrorSendingEnvelope"
 	PeerCountMetric            TelemetryType = "PeerCount"
 	PeerConnFailureMetric      TelemetryType = "PeerConnFailure"
+	PrometheusMetric           TelemetryType = "PrometheusMetric"
 )
 
 type TelemetryRequest struct {
@@ -116,4 +121,17 @@ type ReceivedMessage struct {
 	CreatedAt      int64  `json:"createdAt"`
 	StatusVersion  string `json:"statusVersion"`
 	DeviceType     string `json:"deviceType"`
+}
+
+type PrometheusMetricData struct {
+	ID            int                     `json:"id"`
+	Value         []*prom_model.Metric    `json:"value"`
+	Name          string                  `json:"name"`
+	Labels        []*prom_model.LabelPair `json:"labels"`
+	NodeName      string                  `json:"nodeName"`
+	StatusVersion string                  `json:"statusVersion"`
+	DeviceType    string                  `json:"deviceType"`
+	PeerID        string                  `json:"peerId"`
+	Timestamp     int64                   `json:"timestamp"`
+	CreatedAt     int64                   `json:"createdAt"`
 }
