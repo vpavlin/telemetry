@@ -35,3 +35,6 @@ postgres:
 postgres-clean:
 	docker stop telemetry-postgres &&\
 		docker rm telemetry-postgres
+
+docker:
+	docker build -t "harbor.status.im/wakuorg/telemetry:latest" .
